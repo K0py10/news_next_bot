@@ -13,3 +13,6 @@ https://betterprogramming.pub/how-to-get-data-from-telegram-82af55268a4b
 
 **PTB(Python-telegram-bot)**
 https://www.geeksforgeeks.org/create-a-telegram-bot-using-python/
+
+**General**
+Call function from another file Python – https://www.geeksforgeeks.org/python-call-function-from-another-file/
