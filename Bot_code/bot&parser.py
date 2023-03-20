@@ -40,10 +40,10 @@ async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYP
     for i in range(len(channels_list)):
         async for msg in parser.iter_messages(channels_list[i], reverse = True):
             print ("Message: ", msg.text)
-            #try: 
-                #path = await msg.download_media()
-            #finally:
-            await context.bot.send_message(update.effective_chat.id, text = msg.text)
+            try: 
+                await context.bot.send_message(update.effective_chat.id, text = msg.text)
+            except:
+                print("Parsing message wit id {msg.id} failed")
             #print("nudes acquired")
 
 
