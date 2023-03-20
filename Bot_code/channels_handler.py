@@ -1,55 +1,21 @@
-from telethon import TelegramClient
-#from asyncio import *
-#from telethon.sync import TelegramClient 
-#from telethon.tl.functions.messages import GetHistory 
+from telethon.sync import TelegramClient, events, PeerChannel, GetHistoryRequest
 
 api_id = 23941955
 api_hash = "cdb1e1510a9e8a5c9c6ff0851c829c33"
- #bot_token="5861496186:AAFOFoLjBf-UoS9it_dpx0r1C2qzjiFmEh0"
-bot = TelegramClient('anon', api_id, api_hash).start()
+bot = TelegramClient('bot', api_id,  api_hash).start(bot_token="5861496186:AAFOFoLjBf-UoS9it_dpx0r1C2qzjiFmEh0")
 
-channel_entity = "" #TEMPORARY SOLUTION
-channel_lastmessage = ""
+channels_list = [] #TEMPORARY
+offset_id = 0
+limit = 100
+all_messages = []
+total_messages = 0
+total_count_limit = 0
 
-'''
-async def add_channel_id(user_message_text):
-    try:
-        loop = new_event_loop()
-        set_event_loop(loop)
-        channel_entity = await bot.get_entity(user_message_text)
-        print("Channel: ", channel_entity)
-        return channel_entity
-    except Exception as e:
-        print(e, "Channel: ", channel_entity)
-        #print(e, "Last messages: ", channels_lastmessages_list)
-        return -1
-'''
-
-async def add_message_to_channels_list(channel_username):
-    channel_lastmessage = -1
-    try: 
-        print("Started fetching messages from channel")
-        async for msg in bot.iter_messages(channel_username, limit = 1):
-            print("Msg:", msg.text)
-            channel_lastmessage = msg.id
-        return channel_lastmessage 
-    except Exception as e:
-        print(e, "Channel last message's id: ", channel_lastmessage)
-        return -1
-
-async def retrieve_messages(user_entity, channels_list): #, last_message_id
-    for i in range(len(channels_list)):
-        messages_to_forward = bot.iter_messages(channels_list[i], reverse = True)
-        for msg in messages_to_forward:
-            #messages_to_forward = bot.iter_messages(channel_entity, min_id = last_message_id)
-            print(msg)
-            await bot.forward_messages(user_entity, msg)
-'''    
 while True:
     print("Current Offset ID is:", offset_id, "; Total Messages:", total_messages)
-    history = bot.GetHistory(peer = channels_list[0], offset_id=offset_id, offset_date=None, add_offset=0, limit=limit, max_id=0, min_id=0, hash=0)
+    history = bot.GetHistoryRequest(peer = channels_list[0], offset_id=offset_id, offset_date=None, add_offset=0, limit=limit, max_id=0, min_id=0, hash=0)
     if not history.messages:
-        break 
+        break
     messages = history.messages
     for message in messages:
         all_messages.append(message.to_dict())
@@ -57,6 +23,22 @@ while True:
     total_messages = len(all_messages)
     if total_count_limit != 0 and total_messages >= total_count_limit:
         break
-'''
+        
+
+
+def add_channel(channel_user_input):
+    if channel_user_input.isdigit():
+        entity = PeerChannel(int(channel_user_input))
+    else:
+        entity = channel_user_input
+
+    channels_list.append(bot.get_entity(entity))
+
+
+# make sure you have defined api_id, api_has, bot_token somewhere in the code
+@bot.on(events.NewMessage)
+async def any_message_arrived_handler(event):
+    print('We are handling message events')
+
 
 bot.run_until_disconnected()
