@@ -1,55 +1,55 @@
-from telethon import *
+from telethon import TelegramClient
+#from asyncio import *
+#from telethon.sync import TelegramClient 
+#from telethon.tl.functions.messages import GetHistory 
 
 api_id = 23941955
 api_hash = "cdb1e1510a9e8a5c9c6ff0851c829c33"
+ #bot_token="5861496186:AAFOFoLjBf-UoS9it_dpx0r1C2qzjiFmEh0"
+bot = TelegramClient('anon', api_id, api_hash).start()
 
-bot = TelegramClient('bot', api_id,  api_hash).start(bot_token="5861496186:AAFOFoLjBf-UoS9it_dpx0r1C2qzjiFmEh0")
+channel_entity = "" #TEMPORARY SOLUTION
+channel_lastmessage = ""
 
-channels_list = [] #TEMPORARY
-offset_id = 0
-limit = 100
-all_messages = []
-total_messages = 0
-total_count_limit = 0
-
-greeting_text = "Shalom, my friend"
-help_text = "**Commands List**: \n /add_channel - Add channel to list of channels, whose posts will be fetched (Thereafter – list of channels)"
-
-addChannel_mode = False
-
-@bot.on(events.NewMessage(pattern = "/start"))
-async def any_message_arrived_handler(event):
-    if event.user_id not in channels_list:
-        channels_list.append([event.id, 0])
-    await event.reply(greeting_text)
-
-@bot.on(events.NewMessage(pattern = "/help"))
-async def any_message_arrived_handler(event):
-    await event.reply(help_text)
-
-@bot.on(events.NewMessage(pattern = "/add_channel.+"))
-async def any_message_arrived_handler(event):
-    if add_channel(event): 
-            await event.reply("Channel added")
-    else:
-            await event.reply("Somethong went wrong, try again")
-    #await event.reply("Send me a link to the channel with or without t.me/ part")
-
-
-def add_channel(user_message_event):
+'''
+async def add_channel_id(user_message_text):
     try:
-        channels_list[channels_list.find(user_message_event.user_id)].append(bot.get_entity(user_message_event.text))
-        print(channels_list)
-        return True
+        loop = new_event_loop()
+        set_event_loop(loop)
+        channel_entity = await bot.get_entity(user_message_text)
+        print("Channel: ", channel_entity)
+        return channel_entity
     except Exception as e:
-        print(channels_list)
-        return False
-    
+        print(e, "Channel: ", channel_entity)
+        #print(e, "Last messages: ", channels_lastmessages_list)
+        return -1
+'''
+
+async def add_message_to_channels_list(channel_username):
+    channel_lastmessage = -1
+    try: 
+        print("Started fetching messages from channel")
+        async for msg in bot.iter_messages(channel_username, limit = 1):
+            print("Msg:", msg.text)
+            channel_lastmessage = msg.id
+        return channel_lastmessage 
+    except Exception as e:
+        print(e, "Channel last message's id: ", channel_lastmessage)
+        return -1
+
+async def retrieve_messages(user_entity, channels_list): #, last_message_id
+    for i in range(len(channels_list)):
+        messages_to_forward = bot.iter_messages(channels_list[i], reverse = True)
+        for msg in messages_to_forward:
+            #messages_to_forward = bot.iter_messages(channel_entity, min_id = last_message_id)
+            print(msg)
+            await bot.forward_messages(user_entity, msg)
+'''    
 while True:
     print("Current Offset ID is:", offset_id, "; Total Messages:", total_messages)
-    history = bot.Get(peer = channels_list[0], offset_id=offset_id, offset_date=None, add_offset=0, limit=limit, max_id=0, min_id=0, hash=0)
+    history = bot.GetHistory(peer = channels_list[0], offset_id=offset_id, offset_date=None, add_offset=0, limit=limit, max_id=0, min_id=0, hash=0)
     if not history.messages:
-        break
+        break 
     messages = history.messages
     for message in messages:
         all_messages.append(message.to_dict())
@@ -57,7 +57,6 @@ while True:
     total_messages = len(all_messages)
     if total_count_limit != 0 and total_messages >= total_count_limit:
         break
+'''
 
-
-bot.start()
 bot.run_until_disconnected()
