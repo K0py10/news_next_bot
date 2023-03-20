@@ -53,17 +53,13 @@ async def register_channel(channel_user_input):
         channel_entity = await parser.get_entity(channel_user_input)
         channels_list.append(channel_entity.username)
         print ("Channel name: ", channel_entity.username)
-        #print("Channels: ", channels_list)
-        #loop = set_event_loop(new_event_loop())
         channel_lastmessage = -1
         channel_lastmessage = await add_message_to_channels_list(channel_user_input)
 
         if channel_lastmessage != -1:
             channels_lastmessages_list.append(channel_lastmessage)
-            #print("Last messages: ", channels_lastmessages_list)
             return True
         else:
-            channels_list.pop(-1)
             return False
     except: return False
 
