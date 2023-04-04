@@ -1,6 +1,10 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from telethon import TelegramClient
+from os import remove
+from PIL import Image
+import json
+
 #from channels_handler import add_message_to_channels_list
 
 api_id = 23941955
@@ -8,7 +12,7 @@ api_hash = "cdb1e1510a9e8a5c9c6ff0851c829c33"
 bot_token="5861496186:AAFOFoLjBf-UoS9it_dpx0r1C2qzjiFmEh0"
 parser = TelegramClient('anon', api_id, api_hash).start()
 
-channels_list = ['@shitpost_of_myself'] #TEMPORARY AS HELL SOLUTION
+channels_list = ['shitpost_of_myself'] #TEMPORARY AS HELL SOLUTION
 channels_lastmessages_list = [10]
 
 greeting_text = "Hello. \nI'm a bot, designed to unite all channels' posts in one place.\nTo get commands list, type /help"
@@ -22,8 +26,8 @@ logging.basicConfig(
 )
 '''
 
-async def start_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(update.effective_chat.id, greeting_text) #send_message(chat_id=update..id, text="I'm a bot, please talk to me!")
+async def start_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #response to /start command
+    await context.bot.send_message(update.effective_chat.id, greeting_text) 
 
 async def help_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #response to /help command
 	await context.bot.send_message(update.effective_chat.id, help_text) 
@@ -38,22 +42,49 @@ async def add_channel_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #r
 
 async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #, last_message_id
     for i in range(len(channels_list)):
-        async for msg in parser.iter_messages(channels_list[i], reverse = True):
+        async for msg in parser.iter_messages(channels_list[i], min_id = channels_lastmessages_list[i], reverse = True): #iterate over new channel messages
             print ("Message: ", msg.text)
+            path = None
             try: 
-                await context.bot.send_message(update.effective_chat.id, text = msg.text)
-            except:
-                print("Parsing message wit id {msg.id} failed")
+                if msg.action_entities == None:
+                    if msg.text and msg.file == None: #text only messages handler 
+                        await context.bot.send_message(update.effective_chat.id, text = msg.text, parse_mode = "MarkdownV2")
+                    if msg.file:
+                        path = await msg.download_media() #cache the file from message
+                        if msg.photo: #messages with photo handler
+                            await context.bot.send_photo(update.effective_chat.id, photo = path, caption = msg.text, parse_mode = "MarkdownV2") 
+                        elif msg.video: #messages with video handler
+                            await context.bot.send_video(update.effective_chat.id, video = path, caption = msg.text, parse_mode = "MarkdownV2")
+                        elif msg.audio: #messages with audio handler
+                            await context.bot.send_audio(update.effective_chat.id, audio = path, caption = msg.text, parse_mode = "MarkdownV2")
+                        elif msg.voice: #voice messages handler
+                            await context.bot.send_voice(update.effective_chat.id, voice = path)
+                        elif msg.video_note: #video messages handler
+                            await context.bot.send_video_note(update.effective_chat.id, note = path)
+                        elif msg.sticker: #stickers handler
+                            await context.bot.send_sticker(update.effective_chat.id, sticker = path)
+                        elif msg.gif: #gifs handler
+                            await context.bot.send_animation(update.effective_chat.id, sticker = path, caption = msg.text, parse_mode = "MarkdownV2")
+                        elif msg.file: #messages with file handler
+                            await context.bot.send_document(update.effective_chat.id, path)
+                channels_lastmessages_list[i] = msg.id
+
+            except Exception as e:
+                print("Parsing message with id {msg.text} failed\nException: ", e)
+            
+            if path != None: #clear cache
+                    remove(path)
+                    path = None
             #print("nudes acquired")
 
 
 
 async def register_channel(channel_user_input): 
     try:
-        channel_entity = await parser.get_entity(channel_user_input)
+        channel_entity = await parser.get_entity(channel_user_input) 
+        #getting telegram's internal channel entity (used to verify thet the link is valid and unify stored data)
         channels_list.append(channel_entity.username)
-        print ("Channel name: ", channel_entity.username)
-        channel_lastmessage = -1
+        channel_lastmessage = -1 #used for handling errors
         channel_lastmessage = await add_message_to_channels_list(channel_user_input)
 
         if channel_lastmessage != -1:
@@ -65,11 +96,8 @@ async def register_channel(channel_user_input):
 
 async def add_message_to_channels_list(channel_username): #TELETHON FUNCTION
     channel_lastmessage = -1
-    print("Started fetching messages from channel")
-
-    async for message in parser.iter_messages(channel_username, limit = 1):
-        #print(message.id, message.text)
-        channel_lastmessage = message.id
+    async for message in parser.iter_messages(channel_username, limit = 1): #getting last message from channel
+        channel_lastmessage = message.id #saving its id
     return channel_lastmessage
 
 
