@@ -43,20 +43,21 @@ async def add_channel_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #r
 async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #, last_message_id
     for i in range(len(channels_list)):
         async for msg in parser.iter_messages(channels_list[i], min_id = channels_lastmessages_list[i], reverse = True): #iterate over new channel messages
-            print ("Message: ", msg.text)
             path = None
             try: 
-                if msg.action_entities == None:
-                    if msg.text and msg.file == None: #text only messages handler 
-                        await context.bot.send_message(update.effective_chat.id, text = msg.text, parse_mode = "MarkdownV2")
-                    if msg.file:
+                if msg.text != None: #sort out technical messages
+                    entity = await parser.get_entity(channels_list[i])
+                    text_to_send = entity.title + ":\n" + msg.text.replace(".", "\.")
+                    if msg.file == None: #text only messages handler 
+                        await context.bot.send_message(update.effective_chat.id, text = text_to_send, parse_mode = "MarkdownV2")
+                    if msg.file and msg.web_preview == None:
                         path = await msg.download_media() #cache the file from message
                         if msg.photo: #messages with photo handler
-                            await context.bot.send_photo(update.effective_chat.id, photo = path, caption = msg.text, parse_mode = "MarkdownV2") 
+                            await context.bot.send_photo(update.effective_chat.id, photo = path, caption = text_to_send, parse_mode = "MarkdownV2") 
                         elif msg.video: #messages with video handler
-                            await context.bot.send_video(update.effective_chat.id, video = path, caption = msg.text, parse_mode = "MarkdownV2")
+                            await context.bot.send_video(update.effective_chat.id, video = path, caption = text_to_send, parse_mode = "MarkdownV2")
                         elif msg.audio: #messages with audio handler
-                            await context.bot.send_audio(update.effective_chat.id, audio = path, caption = msg.text, parse_mode = "MarkdownV2")
+                            await context.bot.send_audio(update.effective_chat.id, audio = path, caption = text_to_send, parse_mode = "MarkdownV2")
                         elif msg.voice: #voice messages handler
                             await context.bot.send_voice(update.effective_chat.id, voice = path)
                         elif msg.video_note: #video messages handler
@@ -64,13 +65,15 @@ async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYP
                         elif msg.sticker: #stickers handler
                             await context.bot.send_sticker(update.effective_chat.id, sticker = path)
                         elif msg.gif: #gifs handler
-                            await context.bot.send_animation(update.effective_chat.id, sticker = path, caption = msg.text, parse_mode = "MarkdownV2")
+                            await context.bot.send_animation(update.effective_chat.id, sticker = path, caption = text_to_send, parse_mode = "MarkdownV2")
+                        elif msg.web_preview: #web preview messages handler
+                            await context.bot.send_web_preview
                         elif msg.file: #messages with file handler
-                            await context.bot.send_document(update.effective_chat.id, path)
+                            await context.bot.send_document(update.effective_chat.id, path, caption= text_to_send)
                 channels_lastmessages_list[i] = msg.id
 
             except Exception as e:
-                print("Parsing message with id {msg.text} failed\nException: ", e)
+                print("Parsing message failed\nException: ", e, "\nText:", msg.text, "\nID", msg.id)
             
             if path != None: #clear cache
                     remove(path)
