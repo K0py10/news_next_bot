@@ -1,0 +1,28 @@
+import sqlite3
+from telethon import TelegramClient
+
+channels_list = ["@novosti_voinaa", "@truexanewsua", "@rian_ru", "@readovkanews", "@bbbreaking", "@moscowmap", "@ostorozhno_novosti", "@cvkredanw", "@voynareal", "@wargonzo", "@nexta_live", "@meduzalive", "@gosuslugi", "@novosti_voinam", "@pravdadirty", "@varlamov_news"]
+api_id = 25241310
+api_hash ="9f2d3d29545b7beea8933257b97151ca"
+parser = TelegramClient('anon', api_id, api_hash).start()
+conn = sqlite3.connect("dataset")
+
+async def create_ds(conn):
+    try:
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE posts(channel, varchar(32), text, varchar(4096))")
+        
+        for ch in channels_list:
+            async for msg in parser.iter_messages(ch, limit = 1, reverse = True, wait_time = 0.2):
+                cur.execute("INSERT INTO posts (channel, text) VALUES ({ch}, {msg.text})")
+                print(msg.text)
+    except sqlite3.Error as e:
+        print(e)
+
+def ds_tostring(conn):
+    cur = conn.cursor()
+    print(cur.execute("SELECT * FROM posts"))
+    
+# finally:
+#     conn.commit()
+#     conn.close()

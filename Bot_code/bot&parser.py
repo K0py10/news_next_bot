@@ -1,8 +1,7 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-from telethon import TelegramClient
+from telethon import TelegramClient 
 from os import remove
-from PIL import Image
 import json
 
 #from channels_handler import add_message_to_channels_list
@@ -47,9 +46,9 @@ async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYP
             try: 
                 if msg.text != None: #sort out technical messages
                     entity = await parser.get_entity(channels_list[i])
-                    text_to_send = entity.title + ":\n" + msg.text.replace(".", "\.")
-                    if msg.file == None: #text only messages handler 
-                        await context.bot.send_message(update.effective_chat.id, text = text_to_send, parse_mode = "MarkdownV2")
+                    text_to_send = entity.title + ":\n" + msg.text.replace(".", "\.") # + "\nhttps://t.me/" + entity.username + msg.id
+                    await context.bot.send_message(update.effective_chat.id, text = text_to_send, parse_mode = "MarkdownV2")
+                    '''
                     if msg.file and msg.web_preview == None:
                         path = await msg.download_media() #cache the file from message
                         if msg.photo: #messages with photo handler
@@ -70,6 +69,7 @@ async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYP
                             await context.bot.send_web_preview
                         elif msg.file: #messages with file handler
                             await context.bot.send_document(update.effective_chat.id, path, caption= text_to_send)
+                        '''
                 channels_lastmessages_list[i] = msg.id
 
             except Exception as e:
