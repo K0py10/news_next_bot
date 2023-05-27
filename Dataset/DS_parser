@@ -1,28 +1,43 @@
 import sqlite3
-from telethon import TelegramClient
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
 channels_list = ["@novosti_voinaa", "@truexanewsua", "@rian_ru", "@readovkanews", "@bbbreaking", "@moscowmap", "@ostorozhno_novosti", "@cvkredanw", "@voynareal", "@wargonzo", "@nexta_live", "@meduzalive", "@gosuslugi", "@novosti_voinam", "@pravdadirty", "@varlamov_news"]
-api_id = 25241310
-api_hash ="9f2d3d29545b7beea8933257b97151ca"
-parser = TelegramClient('anon', api_id, api_hash).start()
-conn = sqlite3.connect("dataset")
 
-async def create_ds(conn):
+bot_token = "5909054565:AAHilbEQT8IozDDmn7b4i_GkN4XE2FxHTrQ"
+
+con = sqlite3.connect("Dataset/dataset.sql")
+cur = con.cursor()
+
+cur.execute("DROP TABLE posts")
+cur.execute("CREATE TABLE posts(channel, text)")
+
+async def save_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        cur = conn.cursor()
-        cur.execute("CREATE TABLE posts(channel, varchar(32), text, varchar(4096))")
+        print("Message received")
+        channel = update.message.forward_from_chat.title
+        text = update.message.text.replace("\n", "")  
         
-        for ch in channels_list:
-            async for msg in parser.iter_messages(ch, limit = 1, reverse = True, wait_time = 0.2):
-                cur.execute("INSERT INTO posts (channel, text) VALUES ({ch}, {msg.text})")
-                print(msg.text)
-    except sqlite3.Error as e:
-        print(e)
+        data = {"text": text}
+        res = cur.execute("SELECT * FROM posts WHERE text = :text", data)
+        if res.fetchmany() == []:
+            data = {"channel": channel, "text": text}
+            cur.execute("INSERT INTO posts (channel, text) VALUES (:channel, :text)", data)
+            con.commit()
 
-def ds_tostring(conn):
-    cur = conn.cursor()
-    print(cur.execute("SELECT * FROM posts"))
-    
-# finally:
-#     conn.commit()
-#     conn.close()
+            data = {"text": text}
+            res = cur.execute("SELECT * FROM posts WHERE text = :text", data)
+            print(res.fetchmany())
+
+        # res = cur.execute("SELECT * FROM posts")
+        # print(res.fetchall())
+
+    except Exception as e:
+        print("An error occurred: " + str(e))
+
+
+
+if __name__ == "__main__":
+    application = ApplicationBuilder().token(bot_token).build()
+    application.add_handler(MessageHandler(filters.ALL, save_post))
+    application.run_polling()
