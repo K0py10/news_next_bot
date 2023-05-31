@@ -47,10 +47,14 @@ async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYP
         async for msg in parser.iter_messages(channels_list[i], min_id = channels_lastmessages_list[i], reverse = True): #iterate over new channel messages
             path = None
             try: 
-                if msg.text != None: #sort out technical messages
+                if msg.raw_text != None: #sort out technical messages
                     entity = await parser.get_entity(channels_list[i])
-                    text_to_send = entity.title + ":\n" + clean_text(msg.text) # + "\nhttps://t.me/" + entity.username + msg.id
-                    await context.bot.send_message(update.effective_chat.id, text = msg.text, parse_mode = "MarkdownV2")
+                    print("entity parsed")
+                    text_to_send = clean_text(msg.raw_text) #entity.title + ":\n" +    clean_text(msg.text) # + "\nhttps://t.me/" + entity.username + msg.id
+                    # text_entities = []
+                    # for ent, txt in msg.get_entities_text():
+                    #     text_entities.append(ent)
+                    await context.bot.send_message(update.effective_chat.id, text = text_to_send) #, entities = text_entities) # parse_mode = "MarkdownV2", 
                     '''
                     if msg.file and msg.web_preview == None:
                         path = await msg.download_media() #cache the file from message
