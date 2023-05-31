@@ -2,17 +2,18 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from telethon import TelegramClient 
 from os import remove
+from cleaner import clean_text
 import json
 
 #from channels_handler import add_message_to_channels_list
 
-api_id = 23941955
-api_hash = "cdb1e1510a9e8a5c9c6ff0851c829c33"
+api_id = 94575
+api_hash = "a3406de8d171bb422bb6ddf3bbd800e2"
 bot_token="5861496186:AAFOFoLjBf-UoS9it_dpx0r1C2qzjiFmEh0"
 parser = TelegramClient('anon', api_id, api_hash).start()
 
-channels_list = ['shitpost_of_myself'] #TEMPORARY AS HELL SOLUTION
-channels_lastmessages_list = [10]
+channels_list = [] #['tvrain'] #TEMPORARY AS HELL SOLUTION
+channels_lastmessages_list = [] #[84820]
 
 greeting_text = "Hello. \nI'm a bot, designed to unite all channels' posts in one place.\nTo get commands list, type /help"
 help_text = "Commands List: \n /add_channel - Add channel to list of channels, whose posts will be fetched (Thereafter – list of channels)"
@@ -46,8 +47,8 @@ async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYP
             try: 
                 if msg.text != None: #sort out technical messages
                     entity = await parser.get_entity(channels_list[i])
-                    text_to_send = entity.title + ":\n" + msg.text.replace(".", "\.") # + "\nhttps://t.me/" + entity.username + msg.id
-                    await context.bot.send_message(update.effective_chat.id, text = text_to_send, parse_mode = "MarkdownV2")
+                    text_to_send = entity.title + ":\n" + clean_text(msg.text) # + "\nhttps://t.me/" + entity.username + msg.id
+                    await context.bot.send_message(update.effective_chat.id, text = msg.text, parse_mode = "MarkdownV2")
                     '''
                     if msg.file and msg.web_preview == None:
                         path = await msg.download_media() #cache the file from message
@@ -91,7 +92,7 @@ async def register_channel(channel_user_input):
         channel_lastmessage = await add_message_to_channels_list(channel_user_input)
 
         if channel_lastmessage != -1:
-            channels_lastmessages_list.append(channel_lastmessage)
+            channels_lastmessages_list.append(channel_lastmessage - 5)
             return True
         else:
             return False

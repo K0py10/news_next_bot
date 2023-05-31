@@ -1,16 +1,28 @@
 import sqlite3
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+import datetime
 
-channels_list = ['''"@novosti_voinaa", "@truexanewsua", "@rian_ru", "@readovkanews", "@bbbreaking", "@ostorozhno_novosti",''' "@voynareal", "@wargonzo", "@nexta_live", "@meduzalive", "@pravdadirty", "@varlamov_news"]
+channels_list = ["@novosti_voinaa", 
+                 "@truexanewsua", 
+                 "@rian_ru", 
+                 "@readovkanews", 
+                 "@bbbreaking", 
+                 "@ostorozhno_novosti", 
+                 "@voynareal", 
+                 "@wargonzo", 
+                 "@nexta_live", 
+                 "@meduzalive", 
+                 "@pravdadirty", 
+                 "@varlamov_news"]
 
 bot_token = "5909054565:AAHilbEQT8IozDDmn7b4i_GkN4XE2FxHTrQ"
 
 con = sqlite3.connect("Dataset/dataset.sql")
 cur = con.cursor()
 
-# cur.execute("DROP TABLE posts")
-# cur.execute("CREATE TABLE posts(channel, text)")
+cur.execute("DROP TABLE IF EXISTS posts")
+cur.execute("CREATE TABLE posts(id INTEGER PRIMARY KEY AUTOINCREMENT, channel VARCHAR(16), text VARCHAR(4096), time VARCHAR(20))")
 res = cur.execute("SELECT * FROM posts")
 for row in res.fetchall():
     print(str(row))
@@ -25,11 +37,13 @@ async def save_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             text = update.message.caption.replace("\n", "")  
         
+        time = str(update.message.date.year) + '-' + str(update.message.date.month) + '-' + str(update.message.date.day) + '-' + str(update.message.date.hour) + '-' + str(update.message.date.minute) + '-' + str(update.message.date.second)
+        # print("Date: " + time)
         data = {"text": text}
         res = cur.execute("SELECT * FROM posts WHERE text = :text", data)
-        if res.fetchmany() == []:
-            data = {"channel": channel, "text": text}
-            cur.execute("INSERT INTO posts (channel, text) VALUES (:channel, :text)", data)
+        if res.fetchmany() == [] and len(text) >= 100:
+            data = {"channel": channel, "text": text, "time" : time}
+            cur.execute("INSERT INTO posts (channel, text, time) VALUES (:channel, :text, :time)", data)
             con.commit()
 
             data = {"text": text}
@@ -38,10 +52,10 @@ async def save_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # res = cur.execute("SELECT * FROM posts")
         # print(res.fetchall())
+        con.commit()
 
     except Exception as e:
         print("An error occurred: " + str(e))
-
 
 
 if __name__ == "__main__":

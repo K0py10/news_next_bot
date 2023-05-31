@@ -1,6 +1,11 @@
 # P10
- 
-# Documentations of different libraries/API's
+## Requirements
+1. Telethon v1.28.5
+2. python-telegram-bot 20.3
+3. sqlite3 
+
+
+## Documentations of different libraries/API's
 *TG bot API* – https://core.telegram.org/bots/api
 *Python-telegram-bot* (library for API above) – https://docs.python-telegram-bot.org/en/stable/index.html
 *TG API* for getting access to channels's messages – https://core.telegram.org/methods
@@ -9,13 +14,10 @@ https://docs.telethon.dev/en/stable/quick-references/client-reference.html#clien
 https://docs.telethon.dev/en/stable/quick-references/events-reference.html |
 https://docs.telethon.dev/en/stable/quick-references/objects-reference.html 
 
-# Useful articles
+## Useful articles
 **Telethon**
 https://bmwlog.pp.ua/writing-simple-telegram-bot-with-telethon/
 https://betterprogramming.pub/how-to-get-data-from-telegram-82af55268a4b
 
 **PTB(Python-telegram-bot)**
 https://www.geeksforgeeks.org/create-a-telegram-bot-using-python/
-
-**General**
-Call function from another file Python – https://www.geeksforgeeks.org/python-call-function-from-another-file/
