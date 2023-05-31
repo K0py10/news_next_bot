@@ -7,9 +7,11 @@ import json
 
 #from channels_handler import add_message_to_channels_list
 
-api_id = 94575
-api_hash = "a3406de8d171bb422bb6ddf3bbd800e2"
-bot_token="5861496186:AAFOFoLjBf-UoS9it_dpx0r1C2qzjiFmEh0"
+with open("credentials.json" , 'r') as cr:
+    data = json.load(cr)
+    api_id = data["api_id"]
+    api_hash = data["api_hash"]
+    bot_token = data["bot_token"]
 parser = TelegramClient('anon', api_id, api_hash).start()
 
 channels_list = [] #['tvrain'] #TEMPORARY AS HELL SOLUTION
