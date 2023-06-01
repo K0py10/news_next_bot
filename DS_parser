@@ -40,34 +40,32 @@ for row in res.fetchall():
 
 async def get_channel_messages(channel, amount, start_id):
     res = []
-    # if start_id < 0:
-    #     print("-1")
-    #     async for msg in parser.iter_messages(channel, limit = 1): #getting last message from channel
-    #         print("start_id acqired")
-    #         start_id = msg.id
-    async for msg in parser.iter_messages(channel, limit = amount): # max_id = start_id
+    if start_id < 0:
+        print("-1")
+        async for msg in parser.iter_messages(channel, limit = 1): #getting last message from channel
+            print("start_id acqired")
+            start_id = msg.id
+    async for msg in parser.iter_messages(channel, limit = amount, max_id = start_id, wait_time=1): # max_id = start_id
         try: 
             print("Message received from" + channel)
             if len(msg.raw_text) > 64: 
                 res.append(({"channel": channel, "text": msg.raw_text}))
         except Exception as e:
             print("An error occurred: " + str(e))
-    # if len(res) < amount:
-    #     add = get_channel_messages(channel, amount - len(res), start_id = start_id - amount)
-    #     print("sent again")
-    #     res += add
+    if len(res) < amount:
+        add = get_channel_messages(channel, amount - len(res), start_id = start_id - amount)
+        print("sent again")
+        res += add
     return res
 
-asyncio.run(get_channel_messages('bbcrussian', 100, 1))
-
-# for ch in channels_list:
-#     print(ch)
-#     posts = asyncio.run(get_channel_messages(ch, 100, -1))
-#     cur.executemany("INSERT INTO posts (channel, text) VALUES (:channel, :text)", posts)
-#     con.commit()
-#     for row in cur.execute("SELECT * FROM posts").fetchall():
-#         print(row)
-#     sleep(randint(1, 10))
+for ch in channels_list:
+    print(ch)
+    posts = parser.loop.run_until_complete(get_channel_messages(ch, 100, -1))
+    cur.executemany("INSERT INTO posts (channel, text) VALUES (:channel, :text)", posts)
+    con.commit()
+    for row in cur.execute("SELECT * FROM posts").fetchall():
+        print(row)
+    sleep(randint(1, 10))
 
 
 # async def save_post(update: Update, context: ContextTypes.DEFAULT_TYPE):

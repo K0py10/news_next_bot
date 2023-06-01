@@ -1,9 +1,15 @@
-from telegram import Update
+from telegram import Update, MessageEntity
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from telethon import TelegramClient 
+from multiprocessing import Process
 from os import remove
 from cleaner import clean_text
+from entities_parser import parse_entities
+import db_handler
 import json
+import asyncio
+from random import randint
+import sqlite3
 
 #from channels_handler import add_message_to_channels_list
 
@@ -13,110 +19,101 @@ with open("credentials.json" , 'r') as cr:
     api_hash = data["api_hash"]
     bot_token = data["bot_token"]
 parser = TelegramClient('anon', api_id, api_hash).start()
+parser.parse_model = 'html'
+application = ApplicationBuilder().token(bot_token).build()
+bot = application.bot
+con = sqlite3.connect('db.sql')
+cur = con.cursor()
 
-channels_list = [] #['tvrain'] #TEMPORARY AS HELL SOLUTION
-channels_lastmessages_list = [] #[84820]
+db_handler.restart_db(cur)
 
 greeting_text = "Hello. \nI'm a bot, designed to unite all channels' posts in one place.\nTo get commands list, type /help"
 help_text = "Commands List: \n /add_channel - Add channel to list of channels, whose posts will be fetched (Thereafter – list of channels)"
 channel_added_text = "Channel added successfully"
 channel_adding_error_text = "Something went wrong, check your input and try again"
-'''
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INF
-)
-'''
+
+def run_parser():
+    while True:
+        print('fuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuck')
+        parser.loop.run_until_complete(update())
+        asyncio.sleep(1)
 
 async def start_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #response to /start command
     await context.bot.send_message(update.effective_chat.id, greeting_text) 
-
 async def help_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #response to /help command
-	await context.bot.send_message(update.effective_chat.id, help_text) 
-
+	await context.bot.send_message(update.effective_chat.id, help_text)       
 async def add_channel_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #response to /add_channel command
-    if await register_channel(update.message.text.replace("/add_channel ", "")):
-        print ("Channels: ", channels_list) 
-        print ("Last messages: ", channels_lastmessages_list)
+    if await add_channel(update.message.text.replace("/add_channel ", ""), update.effective_chat.id):
         await context.bot.send_message(update.effective_chat.id, channel_added_text) 
     else:
         await context.bot.send_message(update.effective_chat.id, channel_adding_error_text) 
-
 async def retrieve_messages_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #, last_message_id
-    for i in range(len(channels_list)):
-        async for msg in parser.iter_messages(channels_list[i], min_id = channels_lastmessages_list[i], reverse = True): #iterate over new channel messages
-            path = None
-            try: 
+    channels_list = db_handler.get_all_channels(cur)
+    print("channels list: " + str(channels_list))
+    for ch in channels_list:
+        last_id = 0
+        print('channel' + str(ch))
+        async for msg in parser.iter_messages(ch[1], min_id = ch[2], reverse = True): #iterate over new channel messages
+            last_id = msg.id
+            try:
                 if msg.raw_text != None: #sort out technical messages
-                    entity = await parser.get_entity(channels_list[i])
-                    print("entity parsed")
-                    text_to_send = clean_text(msg.raw_text) #entity.title + ":\n" +    clean_text(msg.text) # + "\nhttps://t.me/" + entity.username + msg.id
-                    # text_entities = []
-                    # for ent, txt in msg.get_entities_text():
-                    #     text_entities.append(ent)
-                    await context.bot.send_message(update.effective_chat.id, text = text_to_send) #, entities = text_entities) # parse_mode = "MarkdownV2", 
-                    '''
-                    if msg.file and msg.web_preview == None:
-                        path = await msg.download_media() #cache the file from message
-                        if msg.photo: #messages with photo handler
-                            await context.bot.send_photo(update.effective_chat.id, photo = path, caption = text_to_send, parse_mode = "MarkdownV2") 
-                        elif msg.video: #messages with video handler
-                            await context.bot.send_video(update.effective_chat.id, video = path, caption = text_to_send, parse_mode = "MarkdownV2")
-                        elif msg.audio: #messages with audio handler
-                            await context.bot.send_audio(update.effective_chat.id, audio = path, caption = text_to_send, parse_mode = "MarkdownV2")
-                        elif msg.voice: #voice messages handler
-                            await context.bot.send_voice(update.effective_chat.id, voice = path)
-                        elif msg.video_note: #video messages handler
-                            await context.bot.send_video_note(update.effective_chat.id, note = path)
-                        elif msg.sticker: #stickers handler
-                            await context.bot.send_sticker(update.effective_chat.id, sticker = path)
-                        elif msg.gif: #gifs handler
-                            await context.bot.send_animation(update.effective_chat.id, sticker = path, caption = text_to_send, parse_mode = "MarkdownV2")
-                        elif msg.web_preview: #web preview messages handler
-                            await context.bot.send_web_preview
-                        elif msg.file: #messages with file handler
-                            await context.bot.send_document(update.effective_chat.id, path, caption= text_to_send)
-                        '''
-                channels_lastmessages_list[i] = msg.id
-
+                    entity = await parser.get_entity(ch[1])
+                    text_to_send = entity.title + ":\n" +  msg.text + "\nhttps://t.me/" + entity.username + "/" + str(msg.id)
+                    await context.bot.send_message(update.effective_chat.id, text = text_to_send, parse_mode='HTML')
             except Exception as e:
                 print("Parsing message failed\nException: ", e, "\nText:", msg.text, "\nID", msg.id)
-            
-            if path != None: #clear cache
-                    remove(path)
-                    path = None
-            #print("nudes acquired")
+        if last_id != 0:    
+            db_handler.update_last_message(cur, ch[0], last_id)
 
-
-
-async def register_channel(channel_user_input): 
+async def add_channel(channel_user_input, chat_id): #
     try:
-        channel_entity = await parser.get_entity(channel_user_input) 
+        entity = await parser.get_entity(channel_user_input)
+        name = entity.username  
         #getting telegram's internal channel entity (used to verify thet the link is valid and unify stored data)
-        channels_list.append(channel_entity.username)
         channel_lastmessage = -1 #used for handling errors
-        channel_lastmessage = await add_message_to_channels_list(channel_user_input)
-
+        channel_lastmessage = await get_channel_lm(name)
         if channel_lastmessage != -1:
-            channels_lastmessages_list.append(channel_lastmessage - 5)
+            db_handler.save_channel(cur, name, channel_lastmessage - randint(1, 10), chat_id)
             return True
         else:
             return False
-    except: return False
-
-async def add_message_to_channels_list(channel_username): #TELETHON FUNCTION
+    except Exception as e: 
+        print("error: " + str(e))
+        return False
+async def get_channel_lm(channel_username):
     channel_lastmessage = -1
     async for message in parser.iter_messages(channel_username, limit = 1): #getting last message from channel
         channel_lastmessage = message.id #saving its id
     return channel_lastmessage
 
-
+async def update():
+    channels_list = db_handler.get_all_channels()
+    for ch in channels_list:
+        if get_channel_lm(ch[1]) != ch[2]: #if there are new messages
+            dest_list = db_handler.get_channel_subs(cur, ch[0])
+            last_id = 0
+            async for msg in parser.iter_messages(ch[1], min_id = ch[2], reverse=True):
+                try:
+                    last_id = msg.id
+                    if msg.text != None:
+                        entity = await parser.get_entity(ch[1])
+                        text_to_send = entity.title + ":\n" +  msg.text + "\nhttps://t.me/" + entity.username + "/" + str(msg.id)
+                        for sub in dest_list:
+                            try:
+                                await bot.send_message(sub, text = text_to_send, parse_mode='HTML')
+                            except Exception as e:
+                                print("Parsing message failed\nException: ", e, "\nChat_id:", sub, "\nChannel: ", ch[1], "\nID: ", msg.id)
+                except Exception as e:
+                    print("Parsing message failed\nException: ", e, "\nChat_id:", sub, "\nChannel: ", ch[1], "\nID: ", msg.id)
+            if last_id != 0:
+                db_handler.update_last_message(cur, ch[0], last_id)
 
 if __name__ == "__main__":
-    application = ApplicationBuilder().token(bot_token).build()
     application.add_handler(CommandHandler('start', start_CR))
     application.add_handler(CommandHandler('help', help_CR))
     application.add_handler(CommandHandler('add_channel', add_channel_CR))   
     application.add_handler(CommandHandler('retrieve_messages', retrieve_messages_CR)) 
 
-    application.run_polling()
+    Process(target=run_parser).start()
+    Process(target=application.run_polling()).start()
+
