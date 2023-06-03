@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from classes import post, post_from_ds
-from vectoriser import vectorize_multiple, compare_vectors
+from unused.vectoriser import vectorize_multiple, compare_vectors
 from ds_handler import *
 import numpy as np
 import sqlite3

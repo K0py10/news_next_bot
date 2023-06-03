@@ -1,4 +1,5 @@
 import sqlite3
+import classes
 
 def restart_db(cur):
     cur.execute("DROP TABLE IF EXISTS channels")
@@ -6,7 +7,9 @@ def restart_db(cur):
     cur.execute("DROP TABLE IF EXISTS subs")
     cur.execute("CREATE TABLE subs(chat_id INTEGER NOT NULL, channel INTEGER NOT NULL REFERENCES channels(id))")
     cur.execute("DROP TABLE IF EXISTS posts")
-    cur.execute("CREATE TABLE posts (channel INTEGER NOT NULL REFERENCES channels(id), chat_id INTEGER NOT NULL, text TEXT NOT NULL)")
+    cur.execute("CREATE TABLE posts (id INTEGER PRIMARY KEY AUTOINCREMENT, channel INTEGER NOT NULL REFERENCES channels(id), text TEXT NOT NULL, lem_text TEXT NOT NULL)")
+    cur.execute("DROP TABLE IF EXISTS chat_posts")
+    cur.execute("CREATE TABLE chat_posts (chat_id INTEGER NOT NULL, post INTEGER NOT NULL REFERENCES posts(chat_id))")
     cur.connection.commit()
 
 def save_channel(cur, name, last_message, chat_id):
@@ -22,7 +25,7 @@ def save_channel(cur, name, last_message, chat_id):
 def get_all_channels(cur):
     res = []
     for row in cur.execute("SELECT * FROM channels"):
-        res.append(row)
+        res.append(classes.channel(row[0], row[1], row[2]))
         #print(row)
     return res
 
@@ -35,3 +38,13 @@ def get_channel_subs(cur, channel_id):
     for row in cur.execute("SELECT chat_id FROM channels INNER JOIN subs ON channels.id = subs.channel WHERE channel_id = ?", (channel_id,)):
         res.append(row[0])
     return res
+
+
+def save_post(cur, channel_id, text, lem_text):
+    cur.execute("INSERT INTO posts (channel_id, text, lem_text) VALUES (:channel_id, :text, :lem_lext)", {"channel_id": channel_id, "text": text, "lem_text": lem_text})
+    cur.connection.commit()
+    return cur.execute("SELECT id FROM POSTS ORDER BY id DESC LIMIT 1").fetchmany()[0][0]
+
+def add_post_to_chat(cur, chat_id, post_id):
+    cur.execute("INSERT INTO chat_posts (chat_id, post) VALUES (:chat_id, :post)", {"chat_id": chat_id, "post": post_id})
+    cur.connection.commit()

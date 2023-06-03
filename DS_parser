@@ -1,25 +1,21 @@
 import sqlite3
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 from telethon import TelegramClient
+from emoji import replace_emoji
 from random import randint
-import asyncio
 from time import sleep
-import datetime
 import json
 
-channels_list = ["novosti_voinaa"] 
-                #  "truexanewsua", 
-                #  "rian_ru", 
-                #  "readovkanews", 
-                #  "bbbreaking", 
-                #  "ostorozhno_novosti", 
-                #  "voynareal", 
-                #  "wargonzo", 
-                #  "nexta_live", 
-                #  "meduzalive", 
-                #  "pravdadirty", 
-                #  "varlamov_news"]
+channels_list = ["novosti_voinaa",
+                 "rian_ru", 
+                 "readovkanews", 
+                 "bbbreaking", 
+                 "ostorozhno_novosti", 
+                 "voynareal", 
+                 "wargonzo", 
+                 "nexta_live", 
+                 "meduzalive", 
+                 "pravdadirty", 
+                 "varlamov_news"]
 
 with open("credentials.json" , 'r') as cr:
     data = json.load(cr)
@@ -47,13 +43,13 @@ async def get_channel_messages(channel, amount, start_id):
             start_id = msg.id
     async for msg in parser.iter_messages(channel, limit = amount, max_id = start_id, wait_time=1): # max_id = start_id
         try: 
-            print("Message received from" + channel)
+            # print("Message received from" + channel)
             if len(msg.raw_text) > 64: 
-                res.append(({"channel": channel, "text": msg.raw_text}))
+                res.append(({"channel": channel, "text": replace_emoji(msg.raw_text.replace("\n", " "), replace = '')}))
         except Exception as e:
             print("An error occurred: " + str(e))
     if len(res) < amount:
-        add = get_channel_messages(channel, amount - len(res), start_id = start_id - amount)
+        add = await get_channel_messages(channel, amount - len(res), start_id = start_id - amount)
         print("sent again")
         res += add
     return res
@@ -63,43 +59,6 @@ for ch in channels_list:
     posts = parser.loop.run_until_complete(get_channel_messages(ch, 100, -1))
     cur.executemany("INSERT INTO posts (channel, text) VALUES (:channel, :text)", posts)
     con.commit()
-    for row in cur.execute("SELECT * FROM posts").fetchall():
-        print(row)
+    # for row in cur.execute("SELECT * FROM posts").fetchall():
+    #     print(row)
     sleep(randint(1, 10))
-
-
-# async def save_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     try:
-#         print("Message received")
-#         channel = update.message.forward_from_chat.username
-#         text = ""
-#         try:
-#             text = update.message.text.replace("\n", "")  
-#         except:
-#             text = update.message.caption.replace("\n", "")  
-        
-#         time = str(update.message.date.year) + '-' + str(update.message.date.month) + '-' + str(update.message.date.day) + '-' + str(update.message.date.hour) + '-' + str(update.message.date.minute) + '-' + str(update.message.date.second)
-#         # print("Date: " + time)
-#         data = {"text": text}
-#         res = cur.execute("SELECT * FROM posts WHERE text = :text", data)
-#         if res.fetchmany() == [] and len(text) >= 100:
-#             data = {"channel": channel, "text": text, "time" : time}
-#             cur.execute("INSERT INTO posts (channel, text, time) VALUES (:channel, :text, :time)", data)
-#             con.commit()
-
-#             data = {"text": text}
-#             res = cur.execute("SELECT * FROM posts WHERE text = :text", data)
-#             print(res.fetchmany())
-
-#         # res = cur.execute("SELECT * FROM posts")
-#         # print(res.fetchall())
-#         con.commit()
-
-#     except Exception as e:
-#         print("An error occurred: " + str(e))
-
-
-# if __name__ == "__main__":
-#     application = ApplicationBuilder().token(bot_token).build()
-#     application.add_handler(MessageHandler(filters.ALL, save_post))
-#     application.run_polling()
