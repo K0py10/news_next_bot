@@ -22,21 +22,8 @@ def prepare_text(text: str):
               and token != '' \
               and token not in punctuation \
               and token != '\n'] 
-    
-    text = tokens
 
-    # text = text.translate(str.maketrans('', '', punctuation)).lower()
-
-    # text = text.split(' ')
-    # # print(text)
-    # for word in text:
-    #     if word in sw or word == " " or word == '':
-    #         text.remove(word)
-    #         continue
-    #     doc = lmr(word)
-    #     lemmas = [token.lemma_.lower() for token in doc]
-    #     word = lemmas[0]
-    return text
+    return tokens
 
 def calculate_similarity(words1, words2):
     # Create a set of all unique words
@@ -60,10 +47,10 @@ def calculate_similarity(words1, words2):
 #     sm = difflib.SequenceMatcher(text1, text2)
 #     return sm.ratio()
 
-def compare_post_to_posts(base, posts, cutoff):
+def find_similar_posts(base, posts, cutoff):
     res = []
     for post in posts:
-        sim = calculate_similarity(base.lem_text.split(' '), post.lem_text.split(' '))
+        sim = calculate_similarity(base, post.lem_text.split(' '))
         # if sim > 0.1:
         #     print(post.id)
         #     print(sim)
