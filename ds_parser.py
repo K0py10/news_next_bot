@@ -22,16 +22,17 @@ with open("credentials.json" , 'r') as cr:
     api_id = data["api_id"]
     api_hash = data["api_hash"]
 parser = TelegramClient('anon', api_id, api_hash).start()
+parser.parse_mode = None
 # bot_token = "5909054565:AAHilbEQT8IozDDmn7b4i_GkN4XE2FxHTrQ"
 
 con = sqlite3.connect("dataset.sql")
 cur = con.cursor()
 
-cur.execute("DROP TABLE IF EXISTS posts")
-cur.execute("CREATE TABLE posts(id INTEGER PRIMARY KEY AUTOINCREMENT, channel VARCHAR(16), text VARCHAR(4096))")
-res = cur.execute("SELECT * FROM posts")
-for row in res.fetchall():
-    print(str(row))
+# cur.execute("DROP TABLE IF EXISTS posts")
+# cur.execute("CREATE TABLE posts(id INTEGER PRIMARY KEY AUTOINCREMENT, channel VARCHAR(16), text VARCHAR(4096))")
+# res = cur.execute("SELECT * FROM posts")
+# for row in res.fetchall():
+#     print(str(row))
 
 
 async def get_channel_messages(channel, amount, start_id):
@@ -44,6 +45,7 @@ async def get_channel_messages(channel, amount, start_id):
     async for msg in parser.iter_messages(channel, limit = amount, max_id = start_id, wait_time=1): # max_id = start_id
         try: 
             # print("Message received from" + channel)
+            print(msg.text)
             if len(msg.raw_text) > 64: 
                 res.append(({"channel": channel, "text": replace_emoji(msg.raw_text.replace("\n", " "), replace = '')}))
         except Exception as e:
@@ -56,8 +58,8 @@ async def get_channel_messages(channel, amount, start_id):
 
 for ch in channels_list:
     print(ch)
-    posts = parser.loop.run_until_complete(get_channel_messages(ch, 100, -1))
-    cur.executemany("INSERT INTO posts (channel, text) VALUES (:channel, :text)", posts)
+    posts = parser.loop.run_until_complete(get_channel_messages(ch, 1, -1))
+    # cur.executemany("INSERT INTO posts (channel, text) VALUES (:channel, :text)", posts)
     con.commit()
     # for row in cur.execute("SELECT * FROM posts").fetchall():
     #     print(row)

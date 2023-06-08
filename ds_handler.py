@@ -1,7 +1,7 @@
 import sqlite3 as sql
 import csv
 #from unused.vectoriser import vectorize_multiple
-from classes import post
+from classes import ds_post
 from simularity_handler import prepare_text
 
 channels_list = ["@novosti_voinaa", 
@@ -23,11 +23,11 @@ def get_channel_posts(con, channel, batch_size): #batch_size == -1 => no limit
     if batch_size > 0: #fetch limited amount of posts
         for row in cur.execute("SELECT * FROM posts WHERE channel = ?", (channel,)).fetchmany(batch_size):
             print(str(row))
-            res.append(post(row[0], row[1], row[2]))
+            res.append(ds_post(row[0], row[1], row[2]))
     else: #fetch all posts
         for row in cur.execute("SELECT * FROM posts WHERE channel = ?", (channel,)).fetchall():
             print(str(row))
-            res.append(post(row[0], row[1], row[2]))
+            res.append(ds_post(row[0], row[1], row[2]))
     return res
 
 def get_min_batch(con):
@@ -42,14 +42,14 @@ def get_min_batch(con):
 def get_one_post(con):
     cur = con.cursor()
     ds_post = cur.execute("SELECT * FROM posts").fetchmany()[0]
-    res = post(ds_post[0], ds_post[1], ds_post[2], ds_post[3])
+    res = ds_post(ds_post[0], ds_post[1], ds_post[2], ds_post[3])
     return res
 
 def get_all_posts(con, exclude):
     cur = con.cursor()
     res = []
-    for ds_post in cur.execute("SELECT * FROM posts").fetchall():
-        res.append(post(ds_post[0], ds_post[1], ds_post[2], ds_post[3]))
+    for dspost in cur.execute("SELECT * FROM posts").fetchall():
+        res.append(ds_post(dspost[0], dspost[1], dspost[2], dspost[3]))
     if exclude != -1:
         for i in range(exclude):
             res.pop(0)

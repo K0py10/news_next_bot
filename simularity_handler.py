@@ -12,7 +12,7 @@ mystem = Mystem()
 sw = stopwords.words("russian")
 
 def prepare_text(text: str):
-    whitelist = set('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ абвгдеёжзийклмнопрстуфхцчшщъыьэюя0123456789')
+    whitelist = set('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ абвгдеёжзийклмнопрстуфхцчшщъыьэюя0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
     text = ''.join(filter(whitelist.__contains__, text))
     # print(text)
     tokens = mystem.lemmatize(text.lower())

@@ -8,9 +8,9 @@ cur = con.cursor()
 cutoff = 0.4
 
 posts = ds_h.get_all_posts(con, -1)
-print("MAIN POST:" + posts[1].text)
+print("MAIN POST:" + posts[801].text)
 print("================================")
-for post in sh.find_similar_posts(posts[1].lem_text, posts, cutoff):
+for post in sh.find_similar_posts(posts[801].lem_text.split(' '), posts, cutoff):
     print(post.id)
     print(post.text)
 
