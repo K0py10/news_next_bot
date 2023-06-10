@@ -2,10 +2,10 @@ from nltk.corpus import stopwords
 # import spacy
 from pymystem3 import Mystem
 from string import punctuation
-import difflib
 
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+from numpy.linalg import norm
+# from sklearn.metrics.pairwise import cosine_similarity
 
 # lmr = spacy.load("ru_core_news_md")
 mystem = Mystem()
@@ -40,7 +40,7 @@ def calculate_similarity(words1, words2):
     for word in words2:
         counts2[word_to_index[word]] += 1
     # Calculate the cosine similarity between the two word count vectors
-    similarity = cosine_similarity([counts1], [counts2])[0][0]
+    similarity = np.dot(counts1, counts2)/(norm(counts1)*norm(counts2))
     return similarity
 
 # def compare_texts(text1, text2):

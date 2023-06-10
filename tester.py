@@ -14,10 +14,3 @@ for post in sh.find_similar_posts(posts[801].lem_text.split(' '), posts, cutoff)
     print(post.id)
     print(post.text)
 
-
-# for post in posts:
-#     print("MAIN POST:" + post.text)
-#     print("================================")
-#     res = sh.compare_post_to_posts(post, posts, cutoff)
-#     for post in res:
-#         print(post.text)

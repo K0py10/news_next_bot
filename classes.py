@@ -21,7 +21,7 @@ class user:
         self.chat = chat
         self.lang = lang
         self.shorten_msgs = shorten_msgs
-        self.del_dim = del_sim
+        self.del_sim = del_sim
 
 class ds_post:
     def __init__(self, id, channel, text, lem_text):
