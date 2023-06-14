@@ -101,6 +101,12 @@ def get_user_channels(user):
 def update_chat_message(message, text):
     cur.execute("UPDATE user_posts SET text = :text WHERE user = :chat AND id = :id", {"text": text, "chat": message.chat, "id": message.id})
     con.commit()
+def delete_chat_message(id):
+    cur.execute("DELETE * FROM user_posts WHERE id = ?", (id,))
+    con.commit()
+def delete_user_messages(chat):
+    cur.execute("DELETE * FROM user_posts WHERE user = ?", (chat,))
+    con.commit()
 def add_user(chat):
     if cur.execute("SELECT * FROM users WHERE chat = ?", (chat,)).fetchall() == []:
         cur.execute("INSERT INTO users (chat, lang, shorten_msgs, del_sim) VALUES (:chat, :lang, :shorten_msgs, :del_sim)", {"chat": chat, "lang": 'null', "shorten_msgs": 1, 'del_sim' : 1})

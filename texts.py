@@ -9,8 +9,8 @@ class texts:
         elif lang == 'en':
             return greeting_text_en
     def help(lang):
-        help_text_en = "Commands List: \n /subscribe_to [channel] — Add channel to list of channels, whose posts will be fetched (Thereafter — list of channels) \n/unsubscribe_from [channel] — delete channel from list of channels \n/my_channels — show full list of my channels.\n/settings — well, settings."
-        help_text_ru = "Список каналов \n /subscribe_to [канал] — добавить канал в список каналов, из которых будут браться посты \n/unsubscribe_from [канал] — удалить канал из этого списква \n/my_channels — показать этот список\n/settings — настройки"
+        help_text_en = "Commands List: \n /subscribe — Add channel to list of channels, whose posts will be fetched (Thereafter — list of channels) \n/unsubscribe [channel] — delete channel from list of channels \n/my_channels — show full list of my channels.\n/settings — well, settings."
+        help_text_ru = "Список каналов \n /subscribe — добавить канал в список каналов, из которых будут браться посты \n/unsubscribe [канал] — удалить канал из этого списква \n/my_channels — показать этот список\n/settings — настройки"
         if lang == "null":
             return help_text_en
         elif lang == 'ru':
@@ -18,8 +18,8 @@ class texts:
         elif lang == 'en':
             return help_text_en
     def ask_channel(lang):
-        text_en = "Enter channel username."
-        text_ru  = "Введите юзернейм канала."
+        text_en = "Enter channel username or '.' to cancel the operation."
+        text_ru  = "Введите юзернейм канала или '.' чтобы отменить операцию"
         if lang == "null":
             return text_en
         elif lang == 'ru':
@@ -53,7 +53,7 @@ class texts:
             return text_ru
         elif lang == 'en':
             return text_en
-    def successfully_unsibscribed(lang):
+    def successfully_unsubscribed(lang):
         text_en = "You successfully unsubscribed from this channel."
         text_ru = "Вы успешно отписались от этого канала."
         if lang == "null":
@@ -92,6 +92,15 @@ class texts:
     def settings(lang):
         text_en = "What do you want to change?"
         text_ru = "Что вы хотите настроить?"
+        if lang == "null":
+            return text_en
+        elif lang == 'ru':
+            return text_ru
+        elif lang == 'en':
+            return text_en
+    def leave_as_is(lang):
+        text_en = "leave as is"
+        text_ru = "оставить, как есть"
         if lang == "null":
             return text_en
         elif lang == 'ru':
@@ -178,7 +187,7 @@ class texts:
         elif lang == 'ru':
             return text_ru
         elif lang == 'en':
-            return 
+            return text_en
     def source(lang):
         text_en = "Source"
         text_ru = "Источник"
@@ -187,7 +196,7 @@ class texts:
         elif lang == 'ru':
             return text_ru
         elif lang == 'en':
-            return 
+            return text_en
     def read_more(lang):
         text_en = "Read more..."
         text_ru = "Читать далее..."
@@ -196,4 +205,4 @@ class texts:
         elif lang == 'ru':
             return text_ru
         elif lang == 'en':
-            return 
+            return text_en  

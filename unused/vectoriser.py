@@ -4,7 +4,8 @@ from transformers import BertTokenizer, BertModel, BertConfig
 import matplotlib.pyplot as plt
 import sqlite3 as sql
 import numpy as np
-from classes import post_from_ds
+from numpy.linalg import norm
+# from classes import post_from_ds
         
 
 def vectorize_multiple(posts_list):
@@ -43,8 +44,10 @@ def compare_vectors(a, b):
     b = np.array(b)
 
     # Calculate the Euclidean distance between the two vectors
-    distance = np.linalg.norm(a - b)
-    return distance
+    # distance = np.linalg.norm(a - b)
+    # return distance
+    similarity = np.dot(a, b)/(norm(a)*norm(a))
+    return similarity
 
 if __name__ == "__main__":
     text = ["A quick brown fox jumped over the lazy dog"]

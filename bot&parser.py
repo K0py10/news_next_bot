@@ -2,16 +2,12 @@ from telegram import Update, MessageEntity, InlineKeyboardButton, InlineKeyboard
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, filters
 from telegram.error import Forbidden
 from telethon import TelegramClient 
-from multiprocessing import Process
-from unused.cleaner import clean_text
-from entities_parser import parse_entities
 import db_handler as db
 import json
 import asyncio
 from random import randint
-import simularity_handler as sh
+import analyser as sh
 from texts import *
-import classes
 from emoji import replace_emoji
 
 async def start_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #response to /start command
@@ -19,6 +15,7 @@ async def start_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #respons
     await context.bot.send_message(update.effective_chat.id, texts.greeting(db.get_user(update.effective_chat.id).lang)) 
 async def help_CR(update: Update, context: ContextTypes.DEFAULT_TYPE): #response to /help command
     await context.bot.send_message(update.effective_chat.id, texts.help(db.get_user(update.effective_chat.id).lang))
+
 async def subscribe_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texts.ask_channel(db.get_user(update.effective_chat.id).lang))
     return 1
@@ -32,29 +29,36 @@ async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         channel_lastmessage = -1 #used for handling errors
         channel_lastmessage = await get_channel_lm(name)
         if channel_lastmessage != -1:
-            if db.save_channel(name, channel_lastmessage - randint(1, 10), update.effective_chat.id):
+            if db.save_channel(name, channel_lastmessage, update.effective_chat.id):
                 await context.bot.send_message(update.effective_chat.id, texts.channel_added(db.get_user(update.effective_chat.id).lang)) 
                 return ConversationHandler.END
             else:
                 await context.bot.send_message(update.effective_chat.id, texts.already_subscribed(db.get_user(update.effective_chat.id).lang)) 
-                return 1
+                return ConversationHandler.END
         else:
             await context.bot.send_message(update.effective_chat.id, texts.wrong_channel_error(db.get_user(update.effective_chat.id).lang))
-            return 1
+            return ConversationHandler.END
     except Exception as e:
         print("Error while getting channel: ", e)
         await context.bot.send_message(update.effective_chat.id, texts.wrong_channel_error(db.get_user(update.effective_chat.id).lang))
         return 1
-async def delete_channel_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def unsubscribe_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(texts.ask_channel(db.get_user(update.effective_chat.id).lang))
+    return 1
+async def delete_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         entity = await parser.get_entity(update.message.text.replace("/unsubscribe_from", ""))
         ch_name = entity.username
+        print(ch_name)
         if db.unsubscribe(ch_name, update.effective_chat.id):
             await context.bot.send_message(update.effective_chat.id, texts.successfully_unsubscribed(db.get_user(update.effective_chat.id).lang))
+            return ConversationHandler.END
         else:
             await context.bot.send_message(update.effective_chat.id, texts.didnt_unsubscribe(db.get_user(update.effective_chat.id).lang))
+            return ConversationHandler.END
     except:
         await context.bot.send_message(update.effective_chat.id, texts.there_is_no_such_channel(db.get_user(update.effective_chat.id).lang))
+        return ConversationHandler.END
 async def my_channels_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print('my channels')
     user_channels = db.get_user_channels(update.effective_chat.id)
@@ -65,24 +69,31 @@ async def my_channels_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(update.effective_chat.id, text_to_send)
     else:
         await context.bot.send_message(update.effective_chat.id, texts.no_subscribed_channels(db.get_user(update.effective_chat.id).lang))
+
 async def settings_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print('settings')
     user = db.get_user(update.effective_chat.id)
     if user.del_sim == 1:
         keyboard = [[InlineKeyboardButton(texts.settings_lang_button(user.lang), callback_data='lang')], 
                     [InlineKeyboardButton(texts.settings_del_sim_turn_off_button(user.lang), callback_data='del_sim')], 
-                    [InlineKeyboardButton(texts.settings_shorten_msgs_button(user.lang), callback_data='shorten_msgs')]]
+                    [InlineKeyboardButton(texts.settings_shorten_msgs_button(user.lang), callback_data='shorten_msgs')],
+                    [InlineKeyboardButton(texts.leave_as_is(user.lang), callback_data='leave_as_is')]]
     else: 
         keyboard = [[InlineKeyboardButton(texts.settings_lang_button(user.lang), callback_data='lang')], 
                     [InlineKeyboardButton(texts.settings_del_sim_turn_on_button(user.lang), callback_data='del_sim')], 
-                    [InlineKeyboardButton(texts.settings_shorten_msgs_button(user.lang), callback_data='shorten_msgs')]]
+                    [InlineKeyboardButton(texts.settings_shorten_msgs_button(user.lang), callback_data='shorten_msgs')],
+                    [InlineKeyboardButton(texts.leave_as_is(user.lang), callback_data='leave_as_is')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(texts.settings(user.lang), reply_markup=reply_markup)
+async def leave_as_is(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = db.get_user(update.effective_chat.id)
+    await update.callback_query.edit_message_text(texts.settings_changed(user.lang))
 async def set_lang_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print('')
     lang = db.get_user(update.effective_chat.id).lang
     keyboard = [[InlineKeyboardButton('English', callback_data = 'en')],
-                [InlineKeyboardButton('Русский', callback_data = 'ru')]]
+                [InlineKeyboardButton('Русский', callback_data = 'ru')],
+                [InlineKeyboardButton(texts.leave_as_is(lang), callback_data='leave_as_is')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.edit_message_text(texts.lang_setting(lang), reply_markup=reply_markup)
 async def change_lang_en_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,7 +112,8 @@ async def change_del_sim_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_shorten_msgs_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = db.get_user(update.effective_chat.id).lang
     keyboard = [[InlineKeyboardButton(texts.not_shorten_msgs_option(lang), callback_data = 'no_shorten')],
-                [InlineKeyboardButton(texts.basic_shorten_msgs_option(lang), callback_data = 'bas_shorten')]]
+                [InlineKeyboardButton(texts.basic_shorten_msgs_option(lang), callback_data = 'bas_shorten')],
+                [InlineKeyboardButton(texts.leave_as_is(lang), callback_data='leave_as_is')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.edit_message_text(texts.shorten_msgs_setting(lang), reply_markup=reply_markup)
 async def change_shorten_no_CR(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -123,6 +135,8 @@ async def update(): #update : Update, context : ContextTypes.DEFAULT_TYPE
     channels_list = db.get_all_channels()
     for ch in channels_list:
         if await get_channel_lm(ch.name) != ch.last_message: #if there are new messages
+            if await get_channel_lm(ch.name) < ch.last_message:
+                db.update_last_message(ch.id, await get_channel_lm(ch.name))
             dest_list = db.get_channel_subs(ch.id)
             last_id = 0
             async for msg in parser.iter_messages(ch.name, min_id = ch.last_message, reverse=True):
@@ -139,29 +153,56 @@ async def update(): #update : Update, context : ContextTypes.DEFAULT_TYPE
                         for sub in dest_list:
                             try:
                                 lang = db.get_user(sub).lang
-                                if len(msg.text) > 2000 and db.get_user(sub).shorten_msgs == 1:
-                                    text_to_send = entity.title + ":\n" +  msg.text[:msg.text.find('\n', 1500)] + '...' + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.read_more(lang) + '</a>'#msg.text.find('\n', 600)
-                                else:
-                                    text_to_send = entity.title + ":\n" +  msg.text + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.source(lang) + '</a>'
                                 # print(text_to_send)
                                 sim_msgs_in_chat = set(sim_ids) & set(db.get_chat_post_ids(sub))
+
                                 if sim_msgs_in_chat == set() or db.get_user(sub).del_sim == 0:
                                     post_db_id = db.save_post(ch.id, ' '.join(lem_text))
+                                    if len(msg.text) > 2000 and db.get_user(sub).shorten_msgs == 1:
+                                        text_to_send = entity.title + ":\n" +  msg.text[:msg.text.find('\n', 1500)] + '...' + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.read_more(lang) + '</a>'#msg.text.find('\n', 600)
+                                    else:
+                                        text_to_send = entity.title + ":\n" +  msg.text + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.source(lang) + '</a>'
+                                    print(text_to_send)
+
                                     if msg.photo or msg.video or msg.audio or msg.voice or msg.video_note or msg.sticker or msg.gif or msg.file:
                                         message = await bot.send_message(sub, text = text_to_send, parse_mode = 'HTML') 
                                     else:
                                         message = await bot.send_message(sub, text = text_to_send, parse_mode = 'HTML', disable_web_page_preview = True)
                                     db.add_post_to_chat(sub, message.id, text_to_send, post_db_id)
+
+
                                 else:
                                     for sim_msg in sim_msgs_in_chat:
-                                        message = db.get_chat_post(sub, sim_msg)
-                                        text_to_send = message.text + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.source(lang) + '</a>'
-                                        await bot.edit_message_text(text_to_send, sub, message.id, parse_mode = 'HTML', disable_web_page_preview = True)
-                                        db.update_chat_message(message, text_to_send) 
+                                        try: 
+                                            message = db.get_chat_post(sub, sim_msg)
+                                            edit_text_to_send = message.text + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.source(lang) + '</a>'
+                                            if msg.photo or msg.video or msg.audio or msg.voice or msg.video_note or msg.sticker or msg.gif or msg.file:
+                                                await bot.edit_message_text(edit_text_to_send, sub, message.id, parse_mode = 'HTML')
+                                            else:
+                                                await bot.edit_message_text(edit_text_to_send, sub, message.id, parse_mode = 'HTML', disable_web_page_preview = True)
+                                            db.update_chat_message(message, edit_text_to_send) 
+
+                                        except IndexError as e:
+                                            print('deleting user messages')
+                                            # db.delete_user_messages(sub)
+                                            db.delete_chat_message(sim_msg)
+                                            post_db_id = db.save_post(ch.id, ' '.join(lem_text))
+
+                                            if len(msg.text) > 2000 and db.get_user(sub).shorten_msgs == 1:
+                                                text_to_send = entity.title + ":\n" +  msg.text[:msg.text.find('\n', 1500)] + '...' + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.read_more(lang) + '</a>'#msg.text.find('\n', 600)
+                                            else:
+                                                text_to_send = entity.title + ":\n" +  msg.text + '\n<a href="https://t.me/' + entity.username + "/" + str(msg.id) + '/">' + texts.source(lang) + '</a>'
+                                            print(text_to_send)
+                                            if msg.photo or msg.video or msg.audio or msg.voice or msg.video_note or msg.sticker or msg.gif or msg.file:
+                                                message = await bot.send_message(sub, text = text_to_send, parse_mode = 'HTML') 
+                                            else:
+                                                message = await bot.send_message(sub, text = text_to_send, parse_mode = 'HTML', disable_web_page_preview = True)
+                                            db.add_post_to_chat(sub, message.id, text_to_send, post_db_id)
+
                             except Forbidden as e:
                                 db.delete_user(sub)
                             except Exception as e:
-                                print("Sending message failed\nException: ", e, "\nChat_id:", sub, "\nChannel: ", ch.name, "\nID: ", msg.id, "\nMessage: ", text_to_send)
+                                print("Sending message failed\nException: ", e, "\nChat_id:", sub, "\nChannel: ", ch.name, "\nID: ", msg.id)
                 except Exception as e:
                     print("Parsing message failed\nException: ", e, "\nChannel: ", ch.name, "\nID: ", msg.id)
             if last_id != 0:
@@ -232,12 +273,19 @@ if __name__ == "__main__":
         fallbacks = [CommandHandler('cancel', cancel_CR)]
     )
     application.add_handler(add_channel_CH)
-    application.add_handler(CommandHandler('unsubscribe_from', delete_channel_CR)) 
+    delete_channel_CH = ConversationHandler(
+        entry_points=[CommandHandler('unsubscribe', unsubscribe_CR)],
+        states={1: [MessageHandler(filters.TEXT, delete_channel)]},
+        fallbacks = [CommandHandler('cancel', cancel_CR)]
+    )
+    application.add_handler(delete_channel_CH)
+    # application.add_handler(CommandHandler('unsubscribe', delete_channel_CR)) 
     # application.add_handler(CommandHandler('retrieve_messages', update)) 
     application.add_handler(CommandHandler('my_channels', my_channels_CR))
     application.add_handler(CommandHandler('settings', settings_CR))
 
     application.add_handler(CallbackQueryHandler(set_lang_CR, 'lang'))
+    application.add_handler(CallbackQueryHandler(leave_as_is, 'leave_as_is'))
     application.add_handler(CallbackQueryHandler(change_lang_en_CR, 'en'))
     application.add_handler(CallbackQueryHandler(change_lang_ru_CR, 'ru'))
     application.add_handler(CallbackQueryHandler(change_del_sim_CR, 'del_sim'))

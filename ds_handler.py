@@ -2,7 +2,7 @@ import sqlite3 as sql
 import csv
 #from unused.vectoriser import vectorize_multiple
 from classes import ds_post
-from simularity_handler import prepare_text
+from analyser import prepare_text
 
 channels_list = ["@novosti_voinaa", 
                  "@truexanewsua", 
